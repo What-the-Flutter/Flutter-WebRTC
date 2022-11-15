@@ -36,7 +36,6 @@ class RemoteDataSource {
       return null;
     } else {
       final data = roomDoc.data() as Map<String, dynamic>;
-      // print('Got offer $data');
       final offer = data['offer'];
       return RTCSessionDescription(offer['sdp'], offer['type']);
     }
@@ -61,27 +60,29 @@ class RemoteDataSource {
 
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool calleeCandidates,
+    required bool listenCallee,
   }) {
     final snapshots = _db
         .collection(_roomsCollection)
         .doc(roomId)
-        .collection(calleeCandidates ? _calleeCandidatesCollection : _callerCandidatesCollection)
+        .collection(listenCallee ? _calleeCandidatesCollection : _callerCandidatesCollection)
         .snapshots();
 
-    final convertedStream = snapshots.map((snapshot) {
-      final docChangesList = calleeCandidates
-          ? snapshot.docChanges.where((change) => change.type == DocumentChangeType.added)
-          : snapshot.docChanges;
-      return docChangesList.map((change) {
-        final data = change.doc.data() as Map<String, dynamic>;
-        return RTCIceCandidate(
-          data['candidate'],
-          data['sdpMid'],
-          data['sdpMLineIndex'],
-        );
-      }).toList();
-    });
+    final convertedStream = snapshots.map(
+      (snapshot) {
+        final docChangesList = listenCallee
+            ? snapshot.docChanges.where((change) => change.type == DocumentChangeType.added)
+            : snapshot.docChanges;
+        return docChangesList.map((change) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          return RTCIceCandidate(
+            data['candidate'],
+            data['sdpMid'],
+            data['sdpMLineIndex'],
+          );
+        }).toList();
+      },
+    );
 
     return convertedStream;
   }

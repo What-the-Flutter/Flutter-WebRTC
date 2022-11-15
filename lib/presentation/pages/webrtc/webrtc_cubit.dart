@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:video_streaming/domain/interactors/webrtc_interactor.dart';
 import 'package:video_streaming/presentation/pages/webrtc/webrtc_state.dart';
+import 'package:video_streaming/utils/logger.dart';
 
 class WebrtcCubit extends Cubit<WebrtcState> {
   static final WebrtcState _initialState = WebrtcState();
@@ -14,9 +15,9 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         'urls': [
           'stun:stun1.l.google.com:19302',
           'stun:stun2.l.google.com:19302',
-        ]
-      }
-    ]
+        ],
+      },
+    ],
   };
 
   final WebrtcInteractor _interactor;
@@ -24,9 +25,14 @@ class WebrtcCubit extends Cubit<WebrtcState> {
 
   WebrtcCubit(this._interactor) : super(_initialState);
 
-  /// Green print color
   Future<String> createRoom() async {
     final peerConnection = await createPeerConnection(_configuration);
+    Logger.printGreen(
+      message: 'Peer Connection created',
+      filename: 'webrtc_cubit',
+      method: 'createRoom',
+      line: 29,
+    );
     emit(state.copyWith(peerConnection: peerConnection));
     _registerPeerConnectionListeners(peerConnection);
 
@@ -35,23 +41,38 @@ class WebrtcCubit extends Cubit<WebrtcState> {
     });
 
     final offer = await peerConnection.createOffer();
-
     final roomId = await _interactor.createRoom(offer: offer);
+    Logger.printGreen(
+      message: 'Room $roomId created with offer',
+      filename: 'webrtc_cubit',
+      method: 'createRoom',
+      line: 44,
+    );
     emit(state.copyWith(roomId: roomId));
 
     peerConnection.onIceCandidate = (candidate) {
+      Logger.printMagenta(
+        message: 'ICE candidate received: ${candidate.candidate}',
+        filename: 'webrtc_cubit',
+        method: 'createRoom(onIceCandidate)',
+        line: 53,
+      );
       _interactor.addCandidateToRoom(
         roomId: roomId,
         candidate: candidate,
-        calleeCandidates: false,
+        calleeCandidate: false,
       );
     };
 
     await peerConnection.setLocalDescription(offer);
 
-    emit(state.copyWith(currentRoomText: 'Current room is $roomId - You are the caller!'));
-
     peerConnection.onTrack = (event) {
+      Logger.printMagenta(
+        message: 'Track is added to the connection',
+        filename: 'webrtc_cubit',
+        method: 'createRoom(onTrack)',
+        line: 69,
+      );
       event.streams[0].getTracks().forEach((track) {
         state.remoteStream?.addTrack(track);
       });
@@ -61,13 +82,18 @@ class WebrtcCubit extends Cubit<WebrtcState> {
     return roomId;
   }
 
-  /// Yellow print color
   Future<void> joinRoom(String roomId, RTCVideoRenderer remoteVideo) async {
     emit(state.copyWith(roomId: roomId));
     final sessionDescription = await _interactor.getRoomDataIfExists(roomId: roomId);
 
     if (sessionDescription != null) {
       final peerConnection = await createPeerConnection(_configuration);
+      Logger.printYellow(
+        message: 'Room exists, Peer Connection created',
+        filename: 'webrtc_cubit',
+        method: 'joinRoom',
+        line: 90,
+      );
 
       _registerPeerConnectionListeners(peerConnection);
 
@@ -76,41 +102,49 @@ class WebrtcCubit extends Cubit<WebrtcState> {
       });
 
       peerConnection.onIceCandidate = (candidate) {
+        Logger.printCyan(
+          message: 'ICE candidate received: ${candidate.candidate}',
+          filename: 'webrtc_cubit',
+          method: 'joinRoom(onIceCandidate)',
+          line: 104,
+        );
         _interactor.addCandidateToRoom(
           roomId: roomId,
           candidate: candidate,
-          calleeCandidates: true,
+          calleeCandidate: true,
         );
       };
 
       peerConnection.onTrack = (event) {
-        event.streams[0].getTracks().forEach((track) async {
-          final stream = state.remoteStream ?? await createLocalMediaStream('key');
-          emit(state.copyWith(remoteStream: stream..addTrack(track), companionShown: true));
-        });
+        Logger.printCyan(
+          message: 'Track is added to the connection',
+          filename: 'webrtc_cubit',
+          method: 'joinRoom(onTrack)',
+          line: 118,
+        );
+        event.streams[0].getTracks().forEach((track) => state.remoteStream?.addTrack(track));
       };
 
       await peerConnection.setRemoteDescription(sessionDescription);
-
       final answer = await peerConnection.createAnswer();
+      Logger.printYellow(
+        message: 'Answer (Session Description Protocol package) created',
+        filename: 'webrtc_cubit',
+        method: 'joinRoom',
+        line: 129,
+      );
 
       await peerConnection.setLocalDescription(answer);
-
       emit(state.copyWith(peerConnection: peerConnection));
-
       await _interactor.setAnswer(roomId: roomId, answer: answer);
 
       _subscriptions.addAll(
         [
-          _interactor
-              .getCandidatesAddedToRoomStream(roomId: roomId, calleeCandidates: false)
-              .listen(
+          _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCallee: false).listen(
             (candidates) {
-              final peerConnection = state.peerConnection;
               for (final candidate in candidates) {
-                peerConnection?.addCandidate(candidate);
+                state.peerConnection?.addCandidate(candidate);
               }
-              emit(state.copyWith(peerConnection: peerConnection));
             },
           ),
           _interactor.getRoomDataStream(roomId: roomId).listen(
@@ -165,46 +199,58 @@ class WebrtcCubit extends Cubit<WebrtcState> {
     _subscriptions.addAll([
       _interactor.getRoomDataStream(roomId: roomId).listen((answer) async {
         if (answer != null) {
-          emit(
-            state.copyWith(peerConnection: state.peerConnection?..setRemoteDescription(answer)),
-          );
+          state.peerConnection?.setRemoteDescription(answer);
         } else {
           if (state.remoteStream != null) {
             emit(state.copyWith(clearAll: true));
           }
         }
       }),
-      _interactor
-          .getCandidatesAddedToRoomStream(roomId: roomId, calleeCandidates: true)
-          .listen((candidates) {
-        final peerConnection = state.peerConnection;
-        for (final candidate in candidates) {
-          peerConnection?.addCandidate(candidate);
-        }
-        emit(state.copyWith(peerConnection: peerConnection));
-      }),
+      _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCallee: true).listen(
+        (candidates) {
+          for (final candidate in candidates) {
+            state.peerConnection?.addCandidate(candidate);
+          }
+        },
+      ),
     ]);
   }
 
   void _registerPeerConnectionListeners(RTCPeerConnection peerConnection) {
     peerConnection.onIceGatheringState = (state) {
-      print('\x1b[36mICE gathering state changed: $state\x1b[0m');
+      Logger.printBlue(
+        message: 'ICE gathering state changed: $state',
+        filename: 'webrtc_cubit',
+        method: '_registerPeerConnectionListeners',
+        line: 220,
+      );
     };
 
     peerConnection.onConnectionState = (state) {
-      print('\x1b[36mConnection state change: $state\x1b[0m');
+      Logger.printBlue(
+        message: 'Connection state change: $state',
+        filename: 'webrtc_cubit',
+        method: '_registerPeerConnectionListeners',
+        line: 229,
+      );
     };
 
     peerConnection.onSignalingState = (state) {
-      print('\x1b[36mSignaling state change: $state\x1b[0m');
-    };
-
-    peerConnection.onIceGatheringState = (state) {
-      print('\x1b[36mICE connection state change: $state\x1b[0m');
+      Logger.printBlue(
+        message: 'Signaling state change: $state',
+        filename: 'webrtc_cubit',
+        method: '_registerPeerConnectionListeners',
+        line: 238,
+      );
     };
 
     peerConnection.onAddStream = (stream) {
-      print('\x1b[36mAdd remote stream\x1b[0m');
+      Logger.printBlue(
+        message: 'Remote stream added',
+        filename: 'webrtc_cubit',
+        method: '_registerPeerConnectionListeners',
+        line: 247,
+      );
       emit(state.copyWith(remoteStream: stream, companionShown: true));
     };
   }

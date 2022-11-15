@@ -1,7 +1,6 @@
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:video_streaming/data/datasources/remote_datasource.dart';
 import 'package:video_streaming/domain/repositories/room_repository.dart';
-import 'package:webrtc_interface/src/rtc_ice_candidate.dart';
-import 'package:webrtc_interface/src/rtc_session_description.dart';
 
 class RoomRepository implements RoomRepositoryInt {
   final RemoteDataSource _remoteDatasource;
@@ -19,12 +18,12 @@ class RoomRepository implements RoomRepositoryInt {
   Future<void> addCandidateToRoom({
     required String roomId,
     required RTCIceCandidate candidate,
-    required bool calleeCandidates,
+    required bool calleeCandidate,
   }) =>
       _remoteDatasource.addCandidateToRoom(
         roomId: roomId,
         candidate: candidate,
-        calleeCandidates: calleeCandidates,
+        calleeCandidates: calleeCandidate,
       );
 
   @override
@@ -42,10 +41,10 @@ class RoomRepository implements RoomRepositoryInt {
   @override
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool calleeCandidates,
+    required bool listenCallee,
   }) =>
       _remoteDatasource.getCandidatesAddedToRoomStream(
         roomId: roomId,
-        calleeCandidates: calleeCandidates,
+        listenCallee: listenCallee,
       );
 }

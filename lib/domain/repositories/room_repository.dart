@@ -8,7 +8,7 @@ abstract class RoomRepositoryInt {
   Future<void> addCandidateToRoom({
     required String roomId,
     required RTCIceCandidate candidate,
-    required bool calleeCandidates,
+    required bool calleeCandidate,
   });
 
   Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId});
@@ -19,6 +19,6 @@ abstract class RoomRepositoryInt {
 
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool calleeCandidates,
+    required bool listenCallee,
   });
 }

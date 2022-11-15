@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:video_streaming/presentation/pages/home/home.dart';
+import 'package:video_streaming/presentation/pages/webrtc/webrtc_page.dart';
 
 class VideoStreamingApp extends StatelessWidget {
   const VideoStreamingApp({super.key});
@@ -7,11 +7,10 @@ class VideoStreamingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const HomePage(title: 'VideoStreamingApp'),
+      home: WebrtcPage(),
     );
   }
 }

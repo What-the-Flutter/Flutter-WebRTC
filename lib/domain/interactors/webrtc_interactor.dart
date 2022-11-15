@@ -14,12 +14,12 @@ class WebrtcInteractor {
   Future<void> addCandidateToRoom({
     required String roomId,
     required RTCIceCandidate candidate,
-    required bool calleeCandidates,
+    required bool calleeCandidate,
   }) =>
       _roomRepository.addCandidateToRoom(
         roomId: roomId,
         candidate: candidate,
-        calleeCandidates: calleeCandidates,
+        calleeCandidate: calleeCandidate,
       );
 
   Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId}) =>
@@ -33,10 +33,7 @@ class WebrtcInteractor {
 
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool calleeCandidates,
+    required bool listenCallee,
   }) =>
-      _roomRepository.getCandidatesAddedToRoomStream(
-        roomId: roomId,
-        calleeCandidates: calleeCandidates,
-      );
+      _roomRepository.getCandidatesAddedToRoomStream(roomId: roomId, listenCallee: listenCallee);
 }

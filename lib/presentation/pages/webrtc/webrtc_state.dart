@@ -1,7 +1,6 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class WebrtcState {
-  final String? currentRoomText;
   final String? roomId;
   final MediaStream? localStream;
   final MediaStream? remoteStream;
@@ -11,7 +10,6 @@ class WebrtcState {
   final bool companionShown;
 
   WebrtcState({
-    this.currentRoomText,
     this.roomId,
     this.localStream,
     this.remoteStream,
@@ -22,7 +20,6 @@ class WebrtcState {
   });
 
   WebrtcState copyWith({
-    String? currentRoomText,
     String? roomId,
     MediaStream? localStream,
     MediaStream? remoteStream,
@@ -38,8 +35,6 @@ class WebrtcState {
   }) {
     return WebrtcState(
       cleared: clearAll,
-      currentRoomText:
-          clearAll || clearCurrentRoomText ? null : currentRoomText ?? this.currentRoomText,
       roomId: clearAll || clearRoomId ? null : roomId ?? this.roomId,
       localStream: clearAll || clearLocalStream ? null : localStream ?? this.localStream,
       remoteStream: clearAll || clearRemoteStream ? null : remoteStream ?? this.remoteStream,
