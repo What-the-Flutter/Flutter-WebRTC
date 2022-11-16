@@ -4,6 +4,7 @@ import 'package:video_streaming/domain/repositories/room_repository.dart';
 
 class RoomRepository implements RoomRepositoryInt {
   final RemoteDataSource _remoteDatasource;
+  Future? _lastAddedCandidate;
 
   RoomRepository(this._remoteDatasource);
 
@@ -18,13 +19,22 @@ class RoomRepository implements RoomRepositoryInt {
   Future<void> addCandidateToRoom({
     required String roomId,
     required RTCIceCandidate candidate,
-    required bool calleeCandidate,
-  }) =>
-      _remoteDatasource.addCandidateToRoom(
+  }) async {
+    if (_lastAddedCandidate != null) {
+      _lastAddedCandidate = _lastAddedCandidate!.whenComplete(
+        () => _remoteDatasource.addCandidateToRoom(
+          roomId: roomId,
+          candidate: candidate,
+        ),
+      );
+    } else {
+      _lastAddedCandidate = _remoteDatasource.addCandidateToRoom(
         roomId: roomId,
         candidate: candidate,
-        calleeCandidates: calleeCandidate,
       );
+    }
+    await _lastAddedCandidate!;
+  }
 
   @override
   Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId}) =>
@@ -41,10 +51,10 @@ class RoomRepository implements RoomRepositoryInt {
   @override
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool listenCallee,
+    required bool listenCaller,
   }) =>
       _remoteDatasource.getCandidatesAddedToRoomStream(
         roomId: roomId,
-        listenCallee: listenCallee,
+        listenCaller: listenCaller,
       );
 }

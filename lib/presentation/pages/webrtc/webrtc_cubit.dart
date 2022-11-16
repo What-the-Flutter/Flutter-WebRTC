@@ -25,7 +25,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
 
   WebrtcCubit(this._interactor) : super(_initialState);
 
-  Future<String> createRoom() async {
+  Future<void> createRoom() async {
     final peerConnection = await createPeerConnection(_configuration);
     Logger.printGreen(
       message: 'Peer Connection created',
@@ -57,11 +57,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         method: 'createRoom(onIceCandidate)',
         line: 53,
       );
-      _interactor.addCandidateToRoom(
-        roomId: roomId,
-        candidate: candidate,
-        calleeCandidate: false,
-      );
+      _interactor.addCandidateToRoom(roomId: roomId, candidate: candidate);
     };
 
     await peerConnection.setLocalDescription(offer);
@@ -79,7 +75,6 @@ class WebrtcCubit extends Cubit<WebrtcState> {
     };
 
     _startStreamListening(roomId);
-    return roomId;
   }
 
   Future<void> joinRoom(String roomId, RTCVideoRenderer remoteVideo) async {
@@ -108,11 +103,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
           method: 'joinRoom(onIceCandidate)',
           line: 104,
         );
-        _interactor.addCandidateToRoom(
-          roomId: roomId,
-          candidate: candidate,
-          calleeCandidate: true,
-        );
+        _interactor.addCandidateToRoom(roomId: roomId, candidate: candidate);
       };
 
       peerConnection.onTrack = (event) {
@@ -140,7 +131,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
 
       _subscriptions.addAll(
         [
-          _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCallee: false).listen(
+          _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCaller: true).listen(
             (candidates) {
               for (final candidate in candidates) {
                 state.peerConnection?.addCandidate(candidate);
@@ -206,7 +197,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
           }
         }
       }),
-      _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCallee: true).listen(
+      _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCaller: false).listen(
         (candidates) {
           for (final candidate in candidates) {
             state.peerConnection?.addCandidate(candidate);

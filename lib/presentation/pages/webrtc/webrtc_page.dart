@@ -43,19 +43,22 @@ class _WebrtcPageState extends State<WebrtcPage> {
       listenWhen: (prev, next) =>
           prev.localStream != next.localStream ||
           prev.remoteStream != next.remoteStream ||
+          prev.roomId != next.roomId ||
           next.cleared,
       listener: (context, state) {
         if (state.cleared) {
           _localRenderer.initialize();
           _remoteRenderer.initialize();
+          _textEditingController.text = '';
         } else {
           if (state.localStream != null || _localRenderer.srcObject != state.localStream) {
             _localRenderer.srcObject = state.localStream!;
-            print('\x1b[36m state.localStream! \x1b[0m');
           }
           if (state.remoteStream != null || _remoteRenderer.srcObject != state.remoteStream) {
             _remoteRenderer.srcObject = state.remoteStream!;
-            print('\x1b[36m state.remoteStream! \x1b[0m');
+          }
+          if (state.roomId != null && state.roomId != _textEditingController.text) {
+            _textEditingController.text = state.roomId!;
           }
         }
         setState(() {});
@@ -90,8 +93,7 @@ class _WebrtcPageState extends State<WebrtcPage> {
           ElevatedButton(
             onPressed: () async {
               await _cubit.openUserMedia();
-              final roomId = await _cubit.createRoom();
-              _textEditingController.text = roomId;
+              await _cubit.createRoom();
               setState(() {});
             },
             child: const Text('Open camera and Create room'),
@@ -145,8 +147,6 @@ class _WebrtcPageState extends State<WebrtcPage> {
           child: TextField(
             readOnly: true,
             textAlign: TextAlign.center,
-            //enableInteractiveSelection:true,
-            //maxLength: roomIdLength,
             controller: _textEditingController,
             decoration: const InputDecoration(
               border: InputBorder.none,
@@ -167,8 +167,8 @@ class _WebrtcPageState extends State<WebrtcPage> {
   }
 
   Widget _fullConversation() {
-    const _size = 0.3;
-    final width = MediaQuery.of(context).size.width * _size;
+    const size = 0.3;
+    final width = MediaQuery.of(context).size.width * size;
     return Stack(
       children: [
         Positioned.fill(
@@ -185,10 +185,10 @@ class _WebrtcPageState extends State<WebrtcPage> {
             width: width,
             height: width * _localRenderer.videoWidth / _localRenderer.videoHeight,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: const BorderRadius.all(Radius.circular(10)),
               border: Border.all(color: Colors.blueAccent),
             ),
-            clipBehavior: Clip.antiAlias,
+            clipBehavior: Clip.hardEdge,
             child: RTCVideoView(
               _localRenderer,
               mirror: true,

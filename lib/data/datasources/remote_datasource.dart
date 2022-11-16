@@ -5,8 +5,11 @@ class RemoteDataSource {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   static const String _roomsCollection = 'rooms';
-  static const String _calleeCandidatesCollection = 'calleeCandidates';
-  static const String _callerCandidatesCollection = 'callerCandidates';
+  static const String _candidatesCollection = 'candidates';
+  static const String _candidateUidField = 'uid';
+  static const String _candidateSdpMidField = 'sdpMid';
+
+  String? userId;
 
   Future<String> createRoom({required RTCSessionDescription offer}) async {
     final roomRef = _db.collection(_roomsCollection).doc();
@@ -60,19 +63,20 @@ class RemoteDataSource {
 
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool listenCallee,
+    required bool listenCaller,
   }) {
     final snapshots = _db
         .collection(_roomsCollection)
         .doc(roomId)
-        .collection(listenCallee ? _calleeCandidatesCollection : _callerCandidatesCollection)
+        .collection(_candidatesCollection)
+        .where(_candidateUidField, isNotEqualTo: userId)
         .snapshots();
 
     final convertedStream = snapshots.map(
       (snapshot) {
-        final docChangesList = listenCallee
-            ? snapshot.docChanges.where((change) => change.type == DocumentChangeType.added)
-            : snapshot.docChanges;
+        final docChangesList = listenCaller
+            ? snapshot.docChanges
+            : snapshot.docChanges.where((change) => change.type == DocumentChangeType.added);
         return docChangesList.map((change) {
           final data = change.doc.data() as Map<String, dynamic>;
           return RTCIceCandidate(
@@ -90,13 +94,15 @@ class RemoteDataSource {
   Future<void> addCandidateToRoom({
     required String roomId,
     required RTCIceCandidate candidate,
-    required bool calleeCandidates,
   }) async {
     final roomRef = _db.collection(_roomsCollection).doc(roomId);
-    final candidatesCollection = roomRef.collection(
-      calleeCandidates ? _calleeCandidatesCollection : _callerCandidatesCollection,
-    );
-
-    await candidatesCollection.add(candidate.toMap());
+    final candidatesCollection = roomRef.collection(_candidatesCollection);
+    final data = await candidatesCollection.where(_candidateUidField, isEqualTo: userId).get();
+    for (final doc in data.docs) {
+      if (doc.data()[_candidateSdpMidField] == candidate.sdpMid) {
+        await doc.reference.delete();
+      }
+    }
+    await candidatesCollection.add(candidate.toMap()..[_candidateUidField] = userId);
   }
 }

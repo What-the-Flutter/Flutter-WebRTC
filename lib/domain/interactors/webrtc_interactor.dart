@@ -11,16 +11,8 @@ class WebrtcInteractor {
 
   Future<void> deleteRoom({required String roomId}) => _roomRepository.deleteRoom(roomId: roomId);
 
-  Future<void> addCandidateToRoom({
-    required String roomId,
-    required RTCIceCandidate candidate,
-    required bool calleeCandidate,
-  }) =>
-      _roomRepository.addCandidateToRoom(
-        roomId: roomId,
-        candidate: candidate,
-        calleeCandidate: calleeCandidate,
-      );
+  Future<void> addCandidateToRoom({required String roomId, required RTCIceCandidate candidate}) =>
+      _roomRepository.addCandidateToRoom(roomId: roomId, candidate: candidate);
 
   Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId}) =>
       _roomRepository.getRoomDataIfExists(roomId: roomId);
@@ -33,7 +25,7 @@ class WebrtcInteractor {
 
   Stream<List<RTCIceCandidate>> getCandidatesAddedToRoomStream({
     required String roomId,
-    required bool listenCallee,
+    required bool listenCaller,
   }) =>
-      _roomRepository.getCandidatesAddedToRoomStream(roomId: roomId, listenCallee: listenCallee);
+      _roomRepository.getCandidatesAddedToRoomStream(roomId: roomId, listenCaller: listenCaller);
 }
