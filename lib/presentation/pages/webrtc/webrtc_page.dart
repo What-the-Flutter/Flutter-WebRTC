@@ -73,9 +73,15 @@ class _WebrtcPageState extends State<WebrtcPage> {
 
   Widget _getContent(WebrtcState state) {
     if (state.currentUserShown && state.companionShown) {
-      return _fullConversation();
+      return _fullConversation(
+        cameraEnabled: !state.videoDisabled,
+        microEnabled: !state.audioDisabled,
+      );
     } else if (state.currentUserShown) {
-      return _myVideoFullScreen();
+      return _myVideoFullScreen(
+        cameraEnabled: !state.videoDisabled,
+        microEnabled: !state.audioDisabled,
+      );
     } else {
       return _emptyPage();
     }
@@ -130,7 +136,10 @@ class _WebrtcPageState extends State<WebrtcPage> {
     );
   }
 
-  Widget _myVideoFullScreen() {
+  Widget _myVideoFullScreen({
+    required bool cameraEnabled,
+    required bool microEnabled,
+  }) {
     return Stack(
       children: [
         Positioned.fill(
@@ -158,15 +167,23 @@ class _WebrtcPageState extends State<WebrtcPage> {
           bottom: 20,
           left: 0,
           right: 0,
-          child: Center(
-            child: _endCallButton(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _disableVideoButton(cameraEnabled),
+              _disableAudioButton(microEnabled),
+              _endCallButton(),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _fullConversation() {
+  Widget _fullConversation({
+    required bool cameraEnabled,
+    required bool microEnabled,
+  }) {
     const size = 0.3;
     final width = MediaQuery.of(context).size.width * size;
     return Stack(
@@ -200,8 +217,13 @@ class _WebrtcPageState extends State<WebrtcPage> {
           bottom: 20,
           left: 0,
           right: 0,
-          child: Center(
-            child: _endCallButton(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _disableVideoButton(cameraEnabled),
+              _disableAudioButton(microEnabled),
+              _endCallButton(),
+            ],
           ),
         ),
       ],
@@ -215,6 +237,40 @@ class _WebrtcPageState extends State<WebrtcPage> {
       child: const Icon(
         Icons.phone,
         color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _disableVideoButton(bool enabled) {
+    return FloatingActionButton(
+      onPressed: () {
+        if (enabled) {
+          _cubit.disableVideo();
+        } else {
+          _cubit.enableVideo();
+        }
+      },
+      backgroundColor: enabled ? Colors.blueAccent : Colors.white,
+      child: Icon(
+        enabled ? Icons.videocam : Icons.videocam_off,
+        color: enabled ? Colors.white : Colors.red,
+      ),
+    );
+  }
+
+  Widget _disableAudioButton(bool enabled) {
+    return FloatingActionButton(
+      onPressed: () {
+        if (enabled) {
+          _cubit.disableAudio();
+        } else {
+          _cubit.enableAudio();
+        }
+      },
+      backgroundColor: enabled ? Colors.blueAccent : Colors.white,
+      child: Icon(
+        enabled ? Icons.mic : Icons.mic_off,
+        color: enabled ? Colors.white : Colors.red,
       ),
     );
   }

@@ -97,12 +97,6 @@ class RemoteDataSource {
   }) async {
     final roomRef = _db.collection(_roomsCollection).doc(roomId);
     final candidatesCollection = roomRef.collection(_candidatesCollection);
-    final data = await candidatesCollection.where(_candidateUidField, isEqualTo: userId).get();
-    for (final doc in data.docs) {
-      if (doc.data()[_candidateSdpMidField] == candidate.sdpMid) {
-        await doc.reference.delete();
-      }
-    }
     await candidatesCollection.add(candidate.toMap()..[_candidateUidField] = userId);
   }
 }

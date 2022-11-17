@@ -67,7 +67,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'Track is added to the connection',
         filename: 'webrtc_cubit',
         method: 'createRoom(onTrack)',
-        line: 69,
+        line: 65,
       );
       event.streams[0].getTracks().forEach((track) {
         state.remoteStream?.addTrack(track);
@@ -78,7 +78,6 @@ class WebrtcCubit extends Cubit<WebrtcState> {
   }
 
   Future<void> joinRoom(String roomId, RTCVideoRenderer remoteVideo) async {
-    emit(state.copyWith(roomId: roomId));
     final sessionDescription = await _interactor.getRoomDataIfExists(roomId: roomId);
 
     if (sessionDescription != null) {
@@ -87,7 +86,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'Room exists, Peer Connection created',
         filename: 'webrtc_cubit',
         method: 'joinRoom',
-        line: 90,
+        line: 84,
       );
 
       _registerPeerConnectionListeners(peerConnection);
@@ -101,7 +100,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
           message: 'ICE candidate received: ${candidate.candidate}',
           filename: 'webrtc_cubit',
           method: 'joinRoom(onIceCandidate)',
-          line: 104,
+          line: 98,
         );
         _interactor.addCandidateToRoom(roomId: roomId, candidate: candidate);
       };
@@ -111,7 +110,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
           message: 'Track is added to the connection',
           filename: 'webrtc_cubit',
           method: 'joinRoom(onTrack)',
-          line: 118,
+          line: 108,
         );
         event.streams[0].getTracks().forEach((track) => state.remoteStream?.addTrack(track));
       };
@@ -122,7 +121,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'Answer (Session Description Protocol package) created',
         filename: 'webrtc_cubit',
         method: 'joinRoom',
-        line: 129,
+        line: 119,
       );
 
       await peerConnection.setLocalDescription(answer);
@@ -158,6 +157,34 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         currentUserShown: true,
       ),
     );
+  }
+
+  void enableVideo() {
+    if (state.videoDisabled) {
+      state.localStream?.getVideoTracks().forEach((track) => track.enabled = true);
+      emit(state.copyWith(videoDisabled: false));
+    }
+  }
+
+  void disableVideo() {
+    if (!state.videoDisabled) {
+      state.localStream?.getVideoTracks().forEach((track) => track.enabled = false);
+      emit(state.copyWith(videoDisabled: true));
+    }
+  }
+
+  void enableAudio() {
+    if (state.audioDisabled) {
+      state.localStream?.getAudioTracks().forEach((track) => track.enabled = true);
+      emit(state.copyWith(audioDisabled: false));
+    }
+  }
+
+  void disableAudio() {
+    if (!state.audioDisabled) {
+      state.localStream?.getAudioTracks().forEach((track) => track.enabled = false);
+      emit(state.copyWith(audioDisabled: true));
+    }
   }
 
   Future<void> hangUp(RTCVideoRenderer localVideo) async {
@@ -213,7 +240,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'ICE gathering state changed: $state',
         filename: 'webrtc_cubit',
         method: '_registerPeerConnectionListeners',
-        line: 220,
+        line: 238,
       );
     };
 
@@ -222,7 +249,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'Connection state change: $state',
         filename: 'webrtc_cubit',
         method: '_registerPeerConnectionListeners',
-        line: 229,
+        line: 247,
       );
     };
 
@@ -231,7 +258,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'Signaling state change: $state',
         filename: 'webrtc_cubit',
         method: '_registerPeerConnectionListeners',
-        line: 238,
+        line: 256,
       );
     };
 
@@ -240,7 +267,7 @@ class WebrtcCubit extends Cubit<WebrtcState> {
         message: 'Remote stream added',
         filename: 'webrtc_cubit',
         method: '_registerPeerConnectionListeners',
-        line: 247,
+        line: 265,
       );
       emit(state.copyWith(remoteStream: stream, companionShown: true));
     };
