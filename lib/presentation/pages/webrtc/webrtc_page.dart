@@ -98,7 +98,7 @@ class _WebrtcPageState extends State<WebrtcPage> {
         children: [
           ElevatedButton(
             onPressed: () async {
-              await _cubit.openUserMedia();
+              await _cubit.enableUserMediaStream();
               await _cubit.createRoom();
               setState(() {});
             },
@@ -123,11 +123,8 @@ class _WebrtcPageState extends State<WebrtcPage> {
             onPressed: buttonIsNotActive
                 ? null
                 : () async {
-                    await _cubit.openUserMedia();
-                    _cubit.joinRoom(
-                      _textEditingController.text,
-                      _remoteRenderer,
-                    );
+                    await _cubit.enableUserMediaStream();
+                    _cubit.joinRoom(_textEditingController.text);
                   },
             child: const Text('Open camera and Join room'),
           ),

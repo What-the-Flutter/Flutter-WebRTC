@@ -14,8 +14,8 @@ class WebrtcInteractor {
   Future<void> addCandidateToRoom({required String roomId, required RTCIceCandidate candidate}) =>
       _roomRepository.addCandidateToRoom(roomId: roomId, candidate: candidate);
 
-  Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId}) =>
-      _roomRepository.getRoomDataIfExists(roomId: roomId);
+  Future<RTCSessionDescription?> getRoomOfferIfExists({required String roomId}) =>
+      _roomRepository.getRoomOfferIfExists(roomId: roomId);
 
   Future<void> setAnswer({required String roomId, required RTCSessionDescription answer}) =>
       _roomRepository.setAnswer(roomId: roomId, answer: answer);

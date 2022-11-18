@@ -22,8 +22,8 @@ class RoomRepository implements RoomRepositoryInt {
       _remoteDatasource.addCandidateToRoom(roomId: roomId, candidate: candidate);
 
   @override
-  Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId}) =>
-      _remoteDatasource.getRoomDataIfExists(roomId: roomId);
+  Future<RTCSessionDescription?> getRoomOfferIfExists({required String roomId}) =>
+      _remoteDatasource.getRoomOfferIfExists(roomId: roomId);
 
   @override
   Future<void> setAnswer({required String roomId, required RTCSessionDescription answer}) =>

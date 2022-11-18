@@ -7,7 +7,7 @@ abstract class RoomRepositoryInt {
 
   Future<void> addCandidateToRoom({required String roomId, required RTCIceCandidate candidate});
 
-  Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId});
+  Future<RTCSessionDescription?> getRoomOfferIfExists({required String roomId});
 
   Future<void> setAnswer({required String roomId, required RTCSessionDescription answer});
 

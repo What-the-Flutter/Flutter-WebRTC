@@ -26,106 +26,68 @@ class WebrtcCubit extends Cubit<WebrtcState> {
   WebrtcCubit(this._interactor) : super(_initialState);
 
   Future<void> createRoom() async {
-    final peerConnection = await createPeerConnection(_configuration);
-    Logger.printGreen(
-      message: 'Peer Connection created',
-      filename: 'webrtc_cubit',
-      method: 'createRoom',
-      line: 29,
-    );
-    emit(state.copyWith(peerConnection: peerConnection));
-    _registerPeerConnectionListeners(peerConnection);
+    await _createPeerConnection();
+
+    final offer = await state.peerConnection!.createOffer();
+    final roomId = await _interactor.createRoom(offer: offer);
+    _registerPeerConnectionListeners(roomId);
 
     state.localStream?.getTracks().forEach((track) {
-      peerConnection.addTrack(track, state.localStream!);
+      state.peerConnection!.addTrack(track, state.localStream!);
     });
 
-    final offer = await peerConnection.createOffer();
-    final roomId = await _interactor.createRoom(offer: offer);
     Logger.printGreen(
       message: 'Room $roomId created with offer',
       filename: 'webrtc_cubit',
       method: 'createRoom',
-      line: 44,
+      line: 39,
     );
     emit(state.copyWith(roomId: roomId));
 
-    peerConnection.onIceCandidate = (candidate) {
-      Logger.printMagenta(
-        message: 'ICE candidate received: ${candidate.candidate}',
-        filename: 'webrtc_cubit',
-        method: 'createRoom(onIceCandidate)',
-        line: 53,
-      );
-      _interactor.addCandidateToRoom(roomId: roomId, candidate: candidate);
-    };
+    await state.peerConnection!.setLocalDescription(offer);
 
-    await peerConnection.setLocalDescription(offer);
-
-    peerConnection.onTrack = (event) {
-      Logger.printMagenta(
-        message: 'Track is added to the connection',
-        filename: 'webrtc_cubit',
-        method: 'createRoom(onTrack)',
-        line: 65,
-      );
-      event.streams[0].getTracks().forEach((track) {
-        state.remoteStream?.addTrack(track);
-      });
-    };
-
-    _startStreamListening(roomId);
+    _subscriptions.addAll([
+      _interactor.getRoomDataStream(roomId: roomId).listen((answer) async {
+        if (answer != null) {
+          state.peerConnection?.setRemoteDescription(answer);
+        } else {
+          if (state.remoteStream != null) {
+            emit(state.copyWith(clearAll: true));
+          }
+        }
+      }),
+      _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCaller: false).listen(
+        (candidates) {
+          for (final candidate in candidates) {
+            state.peerConnection?.addCandidate(candidate);
+          }
+        },
+      ),
+    ]);
   }
 
-  Future<void> joinRoom(String roomId, RTCVideoRenderer remoteVideo) async {
-    final sessionDescription = await _interactor.getRoomDataIfExists(roomId: roomId);
+  Future<void> joinRoom(String roomId) async {
+    final sessionDescription = await _interactor.getRoomOfferIfExists(roomId: roomId);
 
     if (sessionDescription != null) {
-      final peerConnection = await createPeerConnection(_configuration);
-      Logger.printYellow(
-        message: 'Room exists, Peer Connection created',
-        filename: 'webrtc_cubit',
-        method: 'joinRoom',
-        line: 84,
-      );
+      await _createPeerConnection();
 
-      _registerPeerConnectionListeners(peerConnection);
+      _registerPeerConnectionListeners(roomId);
 
       state.localStream?.getTracks().forEach((track) {
-        peerConnection.addTrack(track, state.localStream!);
+        state.peerConnection!.addTrack(track, state.localStream!);
       });
 
-      peerConnection.onIceCandidate = (candidate) {
-        Logger.printCyan(
-          message: 'ICE candidate received: ${candidate.candidate}',
-          filename: 'webrtc_cubit',
-          method: 'joinRoom(onIceCandidate)',
-          line: 98,
-        );
-        _interactor.addCandidateToRoom(roomId: roomId, candidate: candidate);
-      };
-
-      peerConnection.onTrack = (event) {
-        Logger.printCyan(
-          message: 'Track is added to the connection',
-          filename: 'webrtc_cubit',
-          method: 'joinRoom(onTrack)',
-          line: 108,
-        );
-        event.streams[0].getTracks().forEach((track) => state.remoteStream?.addTrack(track));
-      };
-
-      await peerConnection.setRemoteDescription(sessionDescription);
-      final answer = await peerConnection.createAnswer();
+      await state.peerConnection!.setRemoteDescription(sessionDescription);
+      final answer = await state.peerConnection!.createAnswer();
       Logger.printYellow(
         message: 'Answer (Session Description Protocol package) created',
         filename: 'webrtc_cubit',
         method: 'joinRoom',
-        line: 119,
+        line: 82,
       );
 
-      await peerConnection.setLocalDescription(answer);
-      emit(state.copyWith(peerConnection: peerConnection));
+      await state.peerConnection!.setLocalDescription(answer);
       await _interactor.setAnswer(roomId: roomId, answer: answer);
 
       _subscriptions.addAll(
@@ -143,13 +105,24 @@ class WebrtcCubit extends Cubit<WebrtcState> {
                 emit(state.copyWith(clearAll: true));
               }
             },
-          )
+          ),
         ],
       );
     }
   }
 
-  Future<void> openUserMedia() async {
+  Future<void> _createPeerConnection() async {
+    final peerConnection = await createPeerConnection(_configuration);
+    Logger.printGreen(
+      message: 'Peer Connection created',
+      filename: 'webrtc_cubit',
+      method: 'createRoom',
+      line: 115,
+    );
+    emit(state.copyWith(peerConnection: peerConnection));
+  }
+
+  Future<void> enableUserMediaStream() async {
     var stream = await navigator.mediaDevices.getUserMedia({'video': true, 'audio': true});
     emit(
       state.copyWith(
@@ -213,63 +186,35 @@ class WebrtcCubit extends Cubit<WebrtcState> {
     emit(state.copyWith(clearAll: true));
   }
 
-  void _startStreamListening(String roomId) {
-    _subscriptions.addAll([
-      _interactor.getRoomDataStream(roomId: roomId).listen((answer) async {
-        if (answer != null) {
-          state.peerConnection?.setRemoteDescription(answer);
-        } else {
-          if (state.remoteStream != null) {
-            emit(state.copyWith(clearAll: true));
-          }
-        }
-      }),
-      _interactor.getCandidatesAddedToRoomStream(roomId: roomId, listenCaller: false).listen(
-        (candidates) {
-          for (final candidate in candidates) {
-            state.peerConnection?.addCandidate(candidate);
-          }
-        },
-      ),
-    ]);
-  }
-
-  void _registerPeerConnectionListeners(RTCPeerConnection peerConnection) {
-    peerConnection.onIceGatheringState = (state) {
-      Logger.printBlue(
-        message: 'ICE gathering state changed: $state',
+  void _registerPeerConnectionListeners(String roomId) {
+    state.peerConnection!.onIceCandidate = (candidate) {
+      Logger.printCyan(
+        message: 'ICE candidate received: ${candidate.candidate}',
         filename: 'webrtc_cubit',
-        method: '_registerPeerConnectionListeners',
-        line: 238,
+        method: 'joinRoom(onIceCandidate)',
+        line: 190,
       );
+      _interactor.addCandidateToRoom(roomId: roomId, candidate: candidate);
     };
 
-    peerConnection.onConnectionState = (state) {
-      Logger.printBlue(
-        message: 'Connection state change: $state',
-        filename: 'webrtc_cubit',
-        method: '_registerPeerConnectionListeners',
-        line: 247,
-      );
-    };
-
-    peerConnection.onSignalingState = (state) {
-      Logger.printBlue(
-        message: 'Signaling state change: $state',
-        filename: 'webrtc_cubit',
-        method: '_registerPeerConnectionListeners',
-        line: 256,
-      );
-    };
-
-    peerConnection.onAddStream = (stream) {
+    state.peerConnection!.onAddStream = (stream) {
       Logger.printBlue(
         message: 'Remote stream added',
         filename: 'webrtc_cubit',
         method: '_registerPeerConnectionListeners',
-        line: 265,
+        line: 200,
       );
       emit(state.copyWith(remoteStream: stream, companionShown: true));
+    };
+
+    state.peerConnection!.onTrack = (event) {
+      Logger.printCyan(
+        message: 'Track is added to the connection',
+        filename: 'webrtc_cubit',
+        method: 'joinRoom(onTrack)',
+        line: 210,
+      );
+      event.streams[0].getTracks().forEach((track) => state.remoteStream?.addTrack(track));
     };
   }
 }

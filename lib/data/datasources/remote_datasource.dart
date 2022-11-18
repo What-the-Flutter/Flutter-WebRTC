@@ -7,7 +7,6 @@ class RemoteDataSource {
   static const String _roomsCollection = 'rooms';
   static const String _candidatesCollection = 'candidates';
   static const String _candidateUidField = 'uid';
-  static const String _candidateSdpMidField = 'sdpMid';
 
   String? userId;
 
@@ -33,7 +32,7 @@ class RemoteDataSource {
     await roomRef.update(roomWithAnswer);
   }
 
-  Future<RTCSessionDescription?> getRoomDataIfExists({required String roomId}) async {
+  Future<RTCSessionDescription?> getRoomOfferIfExists({required String roomId}) async {
     final roomDoc = await _db.collection(_roomsCollection).doc(roomId).get();
     if (!roomDoc.exists) {
       return null;
