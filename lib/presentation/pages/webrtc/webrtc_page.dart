@@ -14,6 +14,7 @@ class WebrtcPage extends StatefulWidget {
 
 class _WebrtcPageState extends State<WebrtcPage> {
   static const int roomIdLength = 20;
+  static const double _defaultPadding = 20;
 
   final WebrtcCubit _cubit = i.get();
 
@@ -161,14 +162,13 @@ class _WebrtcPageState extends State<WebrtcPage> {
           ),
         ),
         Positioned(
-          bottom: 20,
+          bottom: _defaultPadding,
           left: 0,
           right: 0,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _disableVideoButton(cameraEnabled),
-              _disableAudioButton(microEnabled),
+              ..._mediaButtons(cameraEnabled: cameraEnabled, microEnabled: microEnabled),
               _endCallButton(),
             ],
           ),
@@ -181,8 +181,8 @@ class _WebrtcPageState extends State<WebrtcPage> {
     required bool cameraEnabled,
     required bool microEnabled,
   }) {
-    const size = 0.3;
-    final width = MediaQuery.of(context).size.width * size;
+    const previewSize = 0.3;
+    final previewWidth = MediaQuery.of(context).size.width * previewSize;
     return Stack(
       children: [
         Positioned.fill(
@@ -193,11 +193,11 @@ class _WebrtcPageState extends State<WebrtcPage> {
           ),
         ),
         Positioned(
-          right: 20,
-          bottom: 20,
+          right: _defaultPadding,
+          bottom: _defaultPadding,
           child: Container(
-            width: width,
-            height: width * _localRenderer.videoWidth / _localRenderer.videoHeight,
+            width: previewWidth,
+            height: previewWidth * _localRenderer.videoWidth / _localRenderer.videoHeight,
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.all(Radius.circular(10)),
               border: Border.all(color: Colors.blueAccent),
@@ -211,14 +211,13 @@ class _WebrtcPageState extends State<WebrtcPage> {
           ),
         ),
         Positioned(
-          bottom: 20,
+          bottom: _defaultPadding,
           left: 0,
           right: 0,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _disableVideoButton(cameraEnabled),
-              _disableAudioButton(microEnabled),
+              ..._mediaButtons(cameraEnabled: cameraEnabled, microEnabled: microEnabled),
               _endCallButton(),
             ],
           ),
@@ -238,37 +237,36 @@ class _WebrtcPageState extends State<WebrtcPage> {
     );
   }
 
-  Widget _disableVideoButton(bool enabled) {
-    return FloatingActionButton(
-      onPressed: () {
-        if (enabled) {
-          _cubit.disableVideo();
-        } else {
-          _cubit.enableVideo();
-        }
-      },
-      backgroundColor: enabled ? Colors.blueAccent : Colors.white,
-      child: Icon(
-        enabled ? Icons.videocam : Icons.videocam_off,
-        color: enabled ? Colors.white : Colors.red,
+  List<Widget> _mediaButtons({required bool microEnabled, required bool cameraEnabled}) {
+    return [
+      FloatingActionButton(
+        onPressed: () {
+          if (cameraEnabled) {
+            _cubit.disableVideo();
+          } else {
+            _cubit.enableVideo();
+          }
+        },
+        backgroundColor: cameraEnabled ? Colors.blueAccent : Colors.white,
+        child: Icon(
+          cameraEnabled ? Icons.videocam : Icons.videocam_off,
+          color: cameraEnabled ? Colors.white : Colors.red,
+        ),
       ),
-    );
-  }
-
-  Widget _disableAudioButton(bool enabled) {
-    return FloatingActionButton(
-      onPressed: () {
-        if (enabled) {
-          _cubit.disableAudio();
-        } else {
-          _cubit.enableAudio();
-        }
-      },
-      backgroundColor: enabled ? Colors.blueAccent : Colors.white,
-      child: Icon(
-        enabled ? Icons.mic : Icons.mic_off,
-        color: enabled ? Colors.white : Colors.red,
+      FloatingActionButton(
+        onPressed: () {
+          if (microEnabled) {
+            _cubit.disableAudio();
+          } else {
+            _cubit.enableAudio();
+          }
+        },
+        backgroundColor: microEnabled ? Colors.blueAccent : Colors.white,
+        child: Icon(
+          microEnabled ? Icons.mic : Icons.mic_off,
+          color: microEnabled ? Colors.white : Colors.red,
+        ),
       ),
-    );
+    ];
   }
 }
