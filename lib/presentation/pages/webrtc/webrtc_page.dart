@@ -52,10 +52,10 @@ class _WebrtcPageState extends State<WebrtcPage> {
           _remoteRenderer.initialize();
           _textEditingController.text = '';
         } else {
-          if (state.localStream != null || _localRenderer.srcObject != state.localStream) {
+          if (state.localStream != null && _localRenderer.srcObject != state.localStream) {
             _localRenderer.srcObject = state.localStream!;
           }
-          if (state.remoteStream != null || _remoteRenderer.srcObject != state.remoteStream) {
+          if (state.remoteStream != null && _remoteRenderer.srcObject != state.remoteStream) {
             _remoteRenderer.srcObject = state.remoteStream!;
           }
           if (state.roomId != null && state.roomId != _textEditingController.text) {
